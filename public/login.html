@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Smart Farm Equipment Rental</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+  <header>
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-logo">
+          <i class="fas fa-tractor"></i>
+          <a href="index.html" style="color: white; text-decoration: none;">
+            <span>FarmRent</span>
+          </a>
+        </div>
+        <div class="nav-menu">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="register.html" class="nav-link">Register</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="form-container">
+      <h2 style="text-align: center; margin-bottom: 2rem; color: #2c5530;">Login to Your Account</h2>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+        
+        <button type="submit" class="submit-btn">Login</button>
+      </form>
+
+      <div class="form-link">
+        <p>Don't have an account? <a href="register.html">Register here</a></p>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/main.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const data = {
+        email: formData.get('email'),
+        password: formData.get('password')
+      };
+
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+
+      try {
+        showLoading(submitBtn);
+
+        const response = await api.post('/auth/login', data);
+
+        // ✅ Store login status
+        localStorage.setItem('isLoggedIn', 'true');
+
+        // Store token and user info
+        api.setToken(response.token);
+        UserManager.setCurrentUser(response.user);
+
+        Alert.success('Login successful!');
+
+        // Redirect to equipment page
+        setTimeout(() => {
+          window.location.href = 'equipment.html';
+        }, 1000);
+
+      } catch (error) {
+        Alert.error(error.message || "Login failed");
+        hideLoading(submitBtn, originalText);
+      }
+    });
+
+    // ✅ Redirect if already logged in
+    if (localStorage.getItem('isLoggedIn')) {
+      window.location.href = 'equipment.html';
+    }
+
+    // ✅ Optional Logout Function (for use in header)
+    function logout() {
+      localStorage.removeItem('isLoggedIn');
+      Alert.success("Logged out.");
+      window.location.href = 'index.html';
+    }
+  </script>
+
+</body>
+</html>

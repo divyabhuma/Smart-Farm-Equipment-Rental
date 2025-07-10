@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Farm Equipment Rental</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <i class="fas fa-tractor"></i>
+                    <a href="index.html" style="color: white; text-decoration: none;">
+                        <span>FarmRent</span>
+                    </a>
+                </div>
+                <div class="nav-menu">
+                    <a href="dashboard.html" class="nav-link active">Dashboard</a>
+                    <a href="equipment.html" class="nav-link">Equipment</a>
+                    <a href="add-equipment.html" class="nav-link owner-only" style="display: none;">Add Equipment</a>
+                    <a href="admin.html" class="nav-link admin-only" style="display: none;">Admin</a>
+                    <a href="profile.html" class="nav-link">Profile</a>
+                    <a href="#" class="nav-link" onclick="api.logout()">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <h1>Welcome back, <span id="userName"></span>!</h1>
+                <p>Here's your dashboard overview</p>
+            </div>
+
+            <div class="dashboard-stats" id="dashboardStats">
+                <!-- Stats will be loaded here -->
+            </div>
+
+            <div class="dashboard-section">
+                <h2 id="recentTitle">Recent Activity</h2>
+                <div id="recentActivity">
+                    <div class="loading-container" style="text-align: center; padding: 2rem;">
+                        <span class="loading"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h2>Local Bookings Summary</h2>
+                <p>Total Bookings: <span id="localBookingCount">0</span></p>
+                <p>Total Price: ₹<span id="localTotalPrice">0</span></p>
+                <ul id="localBookingList"></ul>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+    <script>
+        if (!requireAuth()) {
+            // Redirect handled
+        }
+
+        const user = UserManager.getCurrentUser();
+
+        async function initializeDashboard() {
+            document.getElementById('userName').textContent = user.name;
+
+            if (user.role === 'owner') {
+                document.querySelectorAll('.owner-only').forEach(el => el.style.display = 'block');
+            }
+
+            if (user.role === 'admin') {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+            }
+
+            try {
+                const stats = await api.get('/user/dashboard');
+                displayStats(stats);
+            } catch (error) {
+                console.error('Error loading dashboard stats:', error);
+            }
+
+            try {
+                const bookings = await api.get('/booking/my-bookings');
+                displayRecentActivity(bookings);
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+            }
+
+            loadLocalBookingStats();
+        }
+
+        function displayStats(stats) {
+            const statsContainer = document.getElementById('dashboardStats');
+            let statsHTML = '';
+
+            if (user.role === 'farmer') {
+                statsHTML = `
+                    <div class="stat-card">
+                        <h3>${stats.totalBookings || 0}</h3>
+                        <p>Total Bookings</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.activeBookings || 0}</h3>
+                        <p>Active Rentals</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.completedBookings || 0}</h3>
+                        <p>Completed Rentals</p>
+                    </div>
+                `;
+            } else if (user.role === 'owner') {
+                statsHTML = `
+                    <div class="stat-card">
+                        <h3>${stats.totalEquipment || 0}</h3>
+                        <p>Equipment Listed</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.totalBookings || 0}</h3>
+                        <p>Total Bookings</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.pendingBookings || 0}</h3>
+                        <p>Pending Requests</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${formatCurrency(stats.totalEarnings || 0)}</h3>
+                        <p>Total Earnings</p>
+                    </div>
+                `;
+            } else if (user.role === 'admin') {
+                statsHTML = `
+                    <div class="stat-card">
+                        <h3>${stats.totalUsers || 0}</h3>
+                        <p>Total Users</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.totalEquipment || 0}</h3>
+                        <p>Total Equipment</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.totalBookings || 0}</h3>
+                        <p>Total Bookings</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.pendingApprovals || 0}</h3>
+                        <p>Pending Approvals</p>
+                    </div>
+                `;
+            }
+
+            statsContainer.innerHTML = statsHTML;
+        }
+
+        function displayRecentActivity(bookings) {
+            const activityContainer = document.getElementById('recentActivity');
+
+            if (!bookings || bookings.length === 0) {
+                activityContainer.innerHTML = '<p>No recent activity</p>';
+                return;
+            }
+
+            const recentBookings = bookings.slice(0, 5);
+            let activityHTML = '<div class="table-container"><table class="table">';
+
+            if (user.role === 'farmer') {
+                activityHTML += `
+                    <thead>
+                        <tr>
+                            <th>Equipment</th>
+                            <th>Owner</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Status</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                recentBookings.forEach(booking => {
+                    activityHTML += `
+                        <tr>
+                            <td>${booking.equipment.name}</td>
+                            <td>${booking.owner.name}</td>
+                            <td>${formatDate(booking.startDate)}</td>
+                            <td>${formatDate(booking.endDate)}</td>
+                            <td><span class="status status-${booking.status}">${booking.status}</span></td>
+                            <td>${formatCurrency(booking.totalAmount)}</td>
+                        </tr>
+                    `;
+                });
+            } else if (user.role === 'owner') {
+                activityHTML += `
+                    <thead>
+                        <tr>
+                            <th>Equipment</th>
+                            <th>Farmer</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Status</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                recentBookings.forEach(booking => {
+                    activityHTML += `
+                        <tr>
+                            <td>${booking.equipment.name}</td>
+                            <td>${booking.farmer.name}</td>
+                            <td>${formatDate(booking.startDate)}</td>
+                            <td>${formatDate(booking.endDate)}</td>
+                            <td><span class="status status-${booking.status}">${booking.status}</span></td>
+                            <td>${formatCurrency(booking.totalAmount)}</td>
+                            <td>
+                                ${booking.status === 'pending' ? 
+                                    `<button onclick="updateBookingStatus('${booking._id}', 'approved')" class="btn btn-filter">Approve</button>
+                                     <button onclick="updateBookingStatus('${booking._id}', 'rejected')" class="btn btn-clear">Reject</button>` : 
+                                    '-'
+                                }
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            activityHTML += '</tbody></table></div>';
+            activityContainer.innerHTML = activityHTML;
+        }
+
+        async function updateBookingStatus(bookingId, status) {
+            try {
+                await api.put(`/booking/${bookingId}/status`, { status });
+                Alert.success(`Booking ${status} successfully`);
+                const bookings = await api.get('/booking/my-bookings');
+                displayRecentActivity(bookings);
+            } catch (error) {
+                Alert.error(error.message);
+            }
+        }
+
+        function loadLocalBookingStats() {
+            const bookings = JSON.parse(localStorage.getItem('bookings')) || [];
+            const totalPrice = bookings.reduce((sum, b) => sum + b.price, 0);
+
+            document.getElementById('localBookingCount').textContent = bookings.length;
+            document.getElementById('localTotalPrice').textContent = totalPrice;
+
+            const list = document.getElementById('localBookingList');
+            bookings.forEach(b => {
+                const li = document.createElement('li');
+                li.textContent = `${b.name} - ₹${b.price}`;
+                list.appendChild(li);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+        });
+    </script>
+</body>
+</html>

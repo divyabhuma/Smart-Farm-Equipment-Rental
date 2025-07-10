@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Smart Farm Equipment Rental</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <i class="fas fa-tractor"></i>
+                    <a href="index.html" style="color: white; text-decoration: none;">
+                        <span>FarmRent</span>
+                    </a>
+                </div>
+                <div class="nav-menu">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="login.html" class="nav-link">Login</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="form-container">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: #2c5530;">Create Your Account</h2>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">I am a:</label>
+                    <select id="role" name="role" required>
+                        <option value="">Select your role</option>
+                        <option value="farmer">Farmer (Looking to rent equipment)</option>
+                        <option value="owner">Equipment Owner (Want to rent out equipment)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" name="location" required placeholder="City, State">
+                </div>
+                
+                <button type="submit" class="submit-btn">Register</button>
+            </form>
+            
+            <div class="form-link">
+                <p>Already have an account? <a href="login.html">Login here</a></p>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                phone: formData.get('phone'),
+                role: formData.get('role'),
+                location: formData.get('location')
+            };
+            
+            // Validate form
+            const errors = validateForm(data, {
+                name: { required: true, label: 'Full Name' },
+                email: { required: true, email: true, label: 'Email' },
+                password: { required: true, minLength: 6, label: 'Password' },
+                phone: { required: true, phone: true, label: 'Phone Number' },
+                role: { required: true, label: 'Role' },
+                location: { required: true, label: 'Location' }
+            });
+            
+            if (Object.keys(errors).length > 0) {
+                showFormErrors(errors);
+                return;
+            }
+            
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            
+            try {
+                showLoading(submitBtn);
+                
+                const response = await api.post('/auth/register', data);
+                
+                // Store token and user info
+                api.setToken(response.token);
+                UserManager.setCurrentUser(response.user);
+                
+                Alert.success('Registration successful!');
+                
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.href = '/dashboard.html';
+                }, 1000);
+                
+            } catch (error) {
+                Alert.error(error.message);
+                hideLoading(submitBtn, originalText);
+            }
+        });
+
+        // Redirect if already logged in
+        if (UserManager.isLoggedIn()) {
+            window.location.href = '/dashboard.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Equipment | FarmEasy</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <style>
+    .rating i.filled { color: #f5c518; }
+    .rating i { margin-right: 2px; }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      position: relative;
+    }
+    .modal .close {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 24px;
+      color: #333;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <i class="fas fa-tractor"></i>
+        <a href="index.html" class="nav-link">FarmEasy</a>
+      </div>
+      <nav class="nav-menu">
+  <a href="index.html" class="nav-link">Home</a>
+  <a href="dashboard.html" class="nav-link">Dashboard</a>
+  <a href="equipment.html" class="nav-link active">Equipment</a>
+  <a href="login.html" class="nav-link">Login</a>
+  <a href="register.html" class="nav-link">Register</a>
+</nav>
+
+
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div class="filters">
+      <h3>Filter Equipment</h3>
+      <div class="filter-group">
+        <input type="text" id="searchInput" placeholder="Search equipment...">
+        <select id="categoryFilter">
+          <option value="">All Categories</option>
+          <option value="tractor">Tractor</option>
+          <option value="plough">Plough</option>
+          <option value="harvester">Harvester</option>
+          <option value="sprayer">Sprayer</option>
+          <option value="seeder">Seeder</option>
+          <option value="cultivator">Cultivator</option>
+          <option value="baler">Baler</option>
+        </select>
+        <input type="text" id="locationFilter" placeholder="Location">
+        <input type="number" id="minPrice" placeholder="Min Price">
+        <input type="number" id="maxPrice" placeholder="Max Price">
+      </div>
+      <div class="filter-buttons">
+        <button class="btn-filter" onclick="applyFilters()">Apply Filters</button>
+        <button class="btn-clear" onclick="clearFilters()">Clear</button>
+      </div>
+    </div>
+
+    <div id="equipmentGrid" class="equipment-grid"></div>
+  </main>
+
+  <!-- Modal for View & Book -->
+  <div id="bookingModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <img id="modalImage" src="" alt="" style="width: 100%; border-radius: 10px; margin-bottom: 10px;">
+      <h3 id="modalName"></h3>
+      <p id="modalDescription"></p>
+      <p id="modalPrice" class="price"></p>
+      <p id="modalLocation" class="location"></p>
+      <button class="btn" onclick="bookNow()">Book Now</button>
+    </div>
+  </div>
+
+  <script>
+    const equipmentList = [   // ✅ 6 Tractors
+      { name: 'John Deere 5105', description: '45 HP tractor for small farms.', price: 1800, location: 'Andhra Pradesh', category: 'tractor', image: 'https://assets.tractorjunction.com/tractor-junction/assets/images/upload/5075e-4wd-1632221942.webp' },
+      { name: 'Mahindra Yuvo 575', description: 'Powerful 45 HP tractor with modern design.', price: 2000, location: 'Telangana', category: 'tractor', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnX9EVIA0-FhgKVhcKZJFTJS5vjyfaI2Qzuw&s' },
+      { name: 'Swaraj 744 FE', description: 'Multi-purpose 48 HP tractor.', price: 1900, location: 'Karnataka', category: 'tractor', image: 'https://i.pinimg.com/736x/39/7a/6c/397a6cc1db15ed14fdd1265cdb656353.jpg' },
+      { name: 'Eicher 380', description: 'Reliable 40 HP tractor ideal for ploughing.', price: 1600, location: 'Maharashtra', category: 'tractor', image: 'https://cdn.motorfloor.com/vehicles/tractor/eicher-380.jpg' },
+      { name: 'New Holland 3630 TX', description: '55 HP tractor for heavy-duty work.', price: 2300, location: 'Punjab', category: 'tractor', image: 'https://cnhi-p-001-delivery.sitecorecontenthub.cloud/api/public/content/ebe5f292908b4157bae127fd889df180?v=2ea61cbe' },
+      { name: 'Farmtrac 60 Powermaxx', description: '60 HP with fuel efficiency.', price: 2500, location: 'Haryana', category: 'tractor', image: 'https://assets.khetigaadi.com/new-tractor/Farmtrac-60-Powermaxx--8_21734345721_bNhQulPZD.webp' },
+
+      // ✅ 6 Sprayers
+      { name: 'Battery Sprayer', description: '16L battery-operated sprayer.', price: 500, location: 'Tamil Nadu', category: 'sprayer', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRZtNyEMr_SqBMOaUSsdS6MkpdiOdbeAKh3w&s' },
+      { name: 'Manual Sprayer', description: 'Pressure pump for small farms.', price: 300, location: 'Rajasthan', category: 'sprayer', image: 'https://static1.industrybuying.com/products/agriculture-garden-landscaping/sprayers/knapsack-sprayer/AGR.KNA.42969756_1668041320481.webp' },
+      { name: 'Knapsack Sprayer', description: '12L high-pressure hand sprayer.', price: 400, location: 'UP', category: 'sprayer', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRpaD_HHdNSdwfFxuQMHcsy2-XshDFOtvjXCg&s' },
+      { name: 'Agro Sprayer', description: 'Electric motorized sprayer.', price: 650, location: 'Kerala', category: 'sprayer', image: 'https://images.jdmagicbox.com/quickquotes/images_main/kci-agriculture-tools-equipment-and-machinery-06-01-2021-079-220011019-2wc17.jpg' },
+      { name: 'FieldKing Sprayer', description: 'Advanced sprayer with nozzle options.', price: 550, location: 'Gujarat', category: 'sprayer', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRPsquUY9nZVrp0TECYDOTbuZSa5AMXXyA8ug&s' },
+      { name: 'Hitech Battery Sprayer', description: 'Portable and lightweight sprayer.', price: 600, location: 'Bihar', category: 'sprayer', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSCOqklwMAWJIV6FPXwDc8kXvwb1u_5G0npKQ&s' },
+
+      // ✅ 6 Ploughs
+      { name: 'Disc Plough 3-blade', description: 'Heavy-duty steel blades.', price: 1200, location: 'Punjab', category: 'plough', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRt71OBPQ94UZXFyyphBR2V8PbTZVKQ-PYDQ&s' },
+      { name: 'Mouldboard Plough', description: 'Primary tillage implement.', price: 1100, location: 'UP', category: 'plough', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUx3qcK8oE0_G6yPvtmX1gxxNvv821uWYBFg&s' },
+      { name: 'Reversible Plough', description: 'Used for hard soil ploughing.', price: 1300, location: 'Andhra Pradesh', category: 'plough', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyDk3Y0q4RtTRgkeltTAem7A1vlFRtmnTlEw&s' },
+      { name: 'Hydraulic Reversible', description: '2-bottom reversible plough.', price: 1400, location: 'Haryana', category: 'plough', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3VDn3qVBhRbcaaGdGZvAh54vgfO3N8j-SVw&s' },
+      { name: 'Tractor-mounted Plough', description: 'Lightweight and easy to attach.', price: 1000, location: 'Telangana', category: 'plough', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpyYo-RkpJc-6NMslJklFOkyxvTVq05uZIQw&s' },
+      { name: 'Mini Plough', description: 'Designed for small tractors.', price: 900, location: 'Odisha', category: 'plough', image: 'https://5.imimg.com/data5/JA/HG/MY-48594316/mini-plough-500x500.jpg' },
+
+      // ✅ 6 Harvesters
+      { name: 'Kubota Harvester', description: 'High-speed combine harvester.', price: 3500, location: 'Maharashtra', category: 'harvester', image: 'https://www.kubota.com/products/farm-m/images/img_application_02.jpg' },
+      { name: 'John Deere Harvester', description: 'Efficient multi-crop harvester.', price: 4000, location: 'Tamil Nadu', category: 'harvester', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFniL-K30uHKSFlG92YE9gSCBybkq-o7mvyw&s' },
+      { name: 'Tractor Combine', description: 'Compact tractor-driven harvester.', price: 3200, location: 'Bihar', category: 'harvester', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWK9dD0v5P8cJGSC62QgxmIt6jegQAbJAXkQ&s' },
+      { name: 'Mini Combine Harvester', description: 'Small land compatible.', price: 2800, location: 'Karnataka', category: 'harvester', image:'https://3.imimg.com/data3/HK/TQ/MY-7931748/mini-combine-harvester.jpg' },
+      { name: 'Sugarcane Harvester', description: 'Cutting and loading sugarcane.', price: 3600, location: 'UP', category: 'harvester', image: 'https://4.imimg.com/data4/YK/UE/ANDROID-61342461/product-500x500.jpeg' },
+      { name: 'Rice Harvester', description: 'Rice cutting specialist.', price: 2900, location: 'West Bengal', category: 'harvester', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrhKCKvwesf0PV0F4LPRn7ylTEhBir6ibvJA&s' },
+
+      // ✅ 6 Seeders
+      { name: 'Seed Drill', description: '8-row precision drill.', price: 1000, location: 'Bihar', category: 'seeder', image: 'https://5.imimg.com/data5/SELLER/Default/2022/12/WI/HO/QO/98465654/mild-steel-seed-drill.jpeg' },
+      { name: 'Manual Seeder', description: 'Hand push seeder for small land.', price: 600, location: 'Odisha', category: 'seeder', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZzouy7Paa-JOdgVCJxN02Yb6IRaeDn6BrMw&s' },
+      { name: 'Automatic Seeder', description: 'Motor powered seeder.', price: 1200, location: 'Haryana', category: 'seeder', image: 'https://image.made-in-china.com/202f0j00RkCqslphAKoD/Hand-Push-Seeders-Transplanters-Spreader-Lawn-Automatic-Seed-Planter-Machine-Seeder.webp' },
+      { name: 'Zero Till Seeder', description: 'Minimal disturbance seeding.', price: 1300, location: 'Punjab', category: 'seeder', image: 'https://www.fieldking.com/images/seeding-and-plantation/zero-till/lg/zero-till.png' },
+      { name: 'Tractor Seeder', description: 'Heavy duty tractor mountable.', price: 1500, location: 'Gujarat', category: 'seeder', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0IFiKN1Z6qX7ChmsXCAojr7MRr_6d-ldpYQ&s' },
+      { name: 'Multi Crop Seeder', description: 'Seeding various crop types.', price: 1400, location: 'Madhya Pradesh', category: 'seeder', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRhQ4FsImssrlNLcSaygVxXTwPSHhfYLFQQsw&s' },
+
+      // ✅ 6 Cultivators
+      { name: 'Heavy Duty Cultivator', description: 'Strong tines for soil breaking.', price: 900, location: 'UP', category: 'cultivator', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQiI2MyeEKd7hXLTbIPt_44_kri3Ye2hhCC1Q&s' },
+      { name: 'Mini Cultivator', description: 'Lightweight for compact fields.', price: 700, location: 'Rajasthan', category: 'cultivator', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS9oVQcrzmhKnt_KFCwKzLmp3npBslv49yw6A&s' },
+      { name: 'Spring Cultivator', description: 'Flexible tine with spring.', price: 850, location: 'Karnataka', category: 'cultivator', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTdRZVxEjwCOyxQaS-fANS-2MdMmn7A6n-LFg&s' },
+      { name: 'Rigid Cultivator', description: 'Fixed tines for heavy land.', price: 1000, location: 'Andhra Pradesh', category: 'cultivator', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRreoXP1I_hsfB8qpTDaf_2ASNvqgPRLn1-Kw&s' },
+      { name: 'Intercultivator', description: 'Used between crop rows.', price: 750, location: 'Bihar', category: 'cultivator', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStSk5Xu0AxcPBRJ_6ehQrBCDb6xXvJ9DYPlQ&s' },
+      { name: 'Power Cultivator', description: 'Motor powered field preparation.', price: 1100, location: 'Tamil Nadu', category: 'cultivator', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZwtOmQdzWX4j4siFJWHr64jsk_BtroRGDeg&s' },
+
+      // ✅ 6 Balers
+      { name: 'Round Baler', description: 'Efficient straw baling.', price: 1600, location: 'Haryana', category: 'baler', image: 'https://www.deere.com/assets/images/hay-forage/baling/round-baler/r4k012857-rrd-1024x576.jpg' },
+      { name: 'Square Baler', description: 'Compact baling solution.', price: 1500, location: 'MP', category: 'baler', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFTsOW1CBCxZvEkykUConlqQ522rbxIl8-sQ&s' },
+      { name: 'Hay Baler', description: 'Collects and bales hay.', price: 1450, location: 'Gujarat', category: 'baler', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRreBovJHSOLN7SIkEN7Kipo6YH24djqft_eA&s' },
+      { name: 'Straw Baler', description: 'Tractor mounted straw baler.', price: 1700, location: 'Punjab', category: 'baler', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBorwXUAgZVHUAy_zOXw75f2513WCMdstZQg&s' },
+      { name: 'Compact Baler', description: 'Ideal for small fields.', price: 1400, location: 'UP', category: 'baler', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpLKvniHCbp3FeENnvafma5bV4UlaC_Dr_tw&s' },
+      { name: 'Heavy Duty Baler', description: 'High capacity baling.', price: 1800, location: 'Odisha', category: 'baler', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS9kILIyHiwm6aQ7_Rk7ZPuQ_i5JqLVFC-wHw&s' },
+    ];
+
+    function viewAndBook(name, description, price, location, image, id) {
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    if (!isLoggedIn) {
+      alert("Please login to book equipment.");
+      window.location.href = 'login.html';
+      return;
+    }
+
+    document.getElementById('modalName').textContent = name;
+    document.getElementById('modalDescription').textContent = description;
+    document.getElementById('modalPrice').textContent = `₹${price}/day`;
+    document.getElementById('modalLocation').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${location}`;
+    document.getElementById('modalImage').src = image;
+    document.getElementById('bookingModal').style.display = 'flex';
+
+    selectedEquipmentId = id; // ✅ Save selected equipment ID
+  }
+
+  async function bookNow() {
+    const token = localStorage.getItem('token');
+    if (!token || !selectedEquipmentId) {
+      alert('❌ You must be logged in to book.');
+      return;
+    }
+
+    const bookingData = {
+      equipmentId: selectedEquipmentId,
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 3 * 86400000).toISOString() // 3 days later
+    };
+
+    try {
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(bookingData)
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        alert('✅ Booking successful!');
+        closeModal();
+      } else {
+        alert('❌ ' + result.message);
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('bookingModal').style.display = 'none';
+  }
+
+  function getRatingStars(rating) {
+    let stars = '';
+    for (let i = 1; i <= 5; i++) {
+      stars += i <= rating ? '<i class="fas fa-star filled"></i>' : '<i class="far fa-star"></i>';
+    }
+    return stars;
+  }
+
+  function loadEquipment(equipments) {
+    const grid = document.getElementById('equipmentGrid');
+    grid.innerHTML = '';
+    if (!equipments.length) {
+      grid.innerHTML = '<p>No equipment found.</p>';
+      return;
+    }
+    equipments.forEach(item => {
+      item.rating = Math.floor(Math.random() * 2) + 4;
+      grid.innerHTML += `
+        <div class="equipment-card">
+          <img src="${item.image}" alt="${item.name}">
+          <div class="equipment-card-content">
+            <h3>${item.name}</h3>
+            <p>${item.description}</p>
+            <p class="price">₹${item.price}/day</p>
+            <p class="location"><i class="fas fa-map-marker-alt"></i> ${item.location}</p>
+            <div class="rating">${getRatingStars(item.rating)}</div>
+            <button class="btn" onclick="viewAndBook('${item.name}', '${item.description}', ${item.price}, '${item.location}', '${item.image}', '${item._id}')">View & Book</button>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  function applyFilters() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value.toLowerCase();
+    const location = document.getElementById('locationFilter').value.toLowerCase();
+    const minPrice = +document.getElementById('minPrice').value || 0;
+    const maxPrice = +document.getElementById('maxPrice').value || Infinity;
+
+    const filtered = equipmentList.filter(e =>
+      (!search || e.name.toLowerCase().includes(search)) &&
+      (!category || e.category.toLowerCase() === category) &&
+      (!location || e.location.toLowerCase().includes(location)) &&
+      e.price >= minPrice && e.price <= maxPrice
+    );
+    loadEquipment(filtered);
+  }
+
+  function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('categoryFilter').value = '';
+    document.getElementById('locationFilter').value = '';
+    document.getElementById('minPrice').value = '';
+    document.getElementById('maxPrice').value = '';
+    loadEquipment(equipmentList);
+  }
+
+  function logout() {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('token');
+    alert("👋 Logged out successfully.");
+    window.location.href = 'index.html';
+  }
+
+  window.onload = () => loadEquipment(equipmentList);
+</script>

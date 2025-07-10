@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Bookings | FarmRent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+    }
+
+    header {
+      background-color: #2e8b57;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .nav a {
+      color: white;
+      margin-left: 1rem;
+      text-decoration: none;
+    }
+
+    main {
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .booking-card {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .booking-card h3 {
+      margin: 0 0 0.5rem;
+      color: #2e8b57;
+    }
+
+    .booking-card p {
+      margin: 0.3rem 0;
+    }
+
+    .status {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 1rem;
+      background: #eee;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <i class="fas fa-tractor"></i> FarmRent
+    </div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="profile.html">Profile</a>
+      <a href="logout.html">Logout</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>My Bookings</h1>
+    <div id="bookingList">
+      <p>🔄 Loading your bookings...</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    &copy; 2024 FarmRent. All rights reserved.
+  </footer>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const bookingList = document.getElementById('bookingList');
+
+    async function fetchBookings() {
+      if (!token) {
+        bookingList.innerHTML = '<p class="error">❌ Not logged in. Please login first.</p>';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/booking/my-bookings', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          bookingList.innerHTML = `<p class="error">❌ ${data.message || 'Failed to load bookings'}</p>`;
+          return;
+        }
+
+        if (!data.length) {
+          bookingList.innerHTML = '<p>📭 You have no bookings yet.</p>';
+          return;
+        }
+
+        bookingList.innerHTML = '';
+        data.forEach(booking => {
+          const card = document.createElement('div');
+          card.className = 'booking-card';
+
+          card.innerHTML = `
+            <h3>${booking.equipment?.name || 'Unnamed Equipment'}</h3>
+            <p><strong>Category:</strong> ${booking.equipment?.category || 'N/A'}</p>
+            <p><strong>Booking Dates:</strong> ${new Date(booking.startDate).toLocaleDateString()} - ${new Date(booking.endDate).toLocaleDateString()}</p>
+            <p><strong>Total Amount:</strong> ₹${booking.totalAmount || '0'}</p>
+            <p class="status"><strong>Status:</strong> ${booking.status || 'pending'}</p>
+          `;
+
+          bookingList.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+        bookingList.innerHTML = '<p class="error">❌ Error fetching bookings. Try again later.</p>';
+      }
+    }
+
+    fetchBookings();
+  </script>
+
+</body>
+</html>
